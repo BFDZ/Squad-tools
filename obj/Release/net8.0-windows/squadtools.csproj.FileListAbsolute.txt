@@ -1,0 +1,14 @@
+I:\opencode02\squadtools\obj\Release\net8.0-windows\squadtools.GeneratedMSBuildEditorConfig.editorconfig
+I:\opencode02\squadtools\obj\Release\net8.0-windows\squadtools.AssemblyInfoInputs.cache
+I:\opencode02\squadtools\obj\Release\net8.0-windows\squadtools.AssemblyInfo.cs
+I:\opencode02\squadtools\obj\Release\net8.0-windows\squadtools.csproj.CoreCompileInputs.cache
+I:\opencode02\squadtools\bin\Release\net8.0-windows\SquadTools.exe
+I:\opencode02\squadtools\bin\Release\net8.0-windows\SquadTools.deps.json
+I:\opencode02\squadtools\bin\Release\net8.0-windows\SquadTools.runtimeconfig.json
+I:\opencode02\squadtools\bin\Release\net8.0-windows\SquadTools.dll
+I:\opencode02\squadtools\bin\Release\net8.0-windows\SquadTools.pdb
+I:\opencode02\squadtools\obj\Release\net8.0-windows\SquadTools.dll
+I:\opencode02\squadtools\obj\Release\net8.0-windows\refint\SquadTools.dll
+I:\opencode02\squadtools\obj\Release\net8.0-windows\SquadTools.pdb
+I:\opencode02\squadtools\obj\Release\net8.0-windows\squadtools.genruntimeconfig.cache
+I:\opencode02\squadtools\obj\Release\net8.0-windows\ref\SquadTools.dll
