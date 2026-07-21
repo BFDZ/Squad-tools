@@ -16,12 +16,13 @@ internal sealed class MainForm : Form
     private readonly Label rapidPasteStatus = new();
     private readonly TextBox squadNameBox = new();
     private readonly NotifyIcon trayIcon;
+    private readonly Icon applicationIcon;
     private int pasteIntervalMilliseconds = 50;
     private bool allowClose;
 
     internal MainForm()
     {
-        Text = "Squad 工具";
+        Text = "Squad小帮手";
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(560, 430);
         MinimumSize = new Size(560, 430);
@@ -29,19 +30,48 @@ internal sealed class MainForm : Form
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
         Font = new Font("Microsoft YaHei UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
+        applicationIcon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? (Icon)SystemIcons.Application.Clone();
+        Icon = applicationIcon;
 
-        TabControl tabs = new() { Dock = DockStyle.Fill };
+        TabControl tabs = new()
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Point(16, 7)
+        };
         tabs.TabPages.Add(CreateBuildPage());
         tabs.TabPages.Add(CreateRapidPastePage());
-        Controls.Add(tabs);
+
+        Label footer = new()
+        {
+            Dock = DockStyle.Fill,
+            Text = "作者: lyl-103  版本号: 1.3.0",
+            TextAlign = ContentAlignment.MiddleRight,
+            Padding = new Padding(0, 0, 12, 0),
+            ForeColor = Color.FromArgb(105, 110, 115),
+            Font = new Font("Microsoft YaHei UI", 8.5F, FontStyle.Regular, GraphicsUnit.Point)
+        };
+        TableLayoutPanel shell = new()
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty
+        };
+        shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+        shell.Controls.Add(tabs, 0, 0);
+        shell.Controls.Add(footer, 0, 1);
+        Controls.Add(shell);
 
         ContextMenuStrip trayMenu = new();
         trayMenu.Items.Add("显示主界面", null, (_, _) => ShowMainWindow());
         trayMenu.Items.Add("退出", null, (_, _) => ExitApplication());
         trayIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
-            Text = "Squad 工具",
+            Icon = (Icon)applicationIcon.Clone(),
+            Text = "Squad小帮手",
             ContextMenuStrip = trayMenu,
             Visible = true
         };
@@ -58,28 +88,23 @@ internal sealed class MainForm : Form
 
     private TabPage CreateBuildPage()
     {
-        TabPage page = new("自动铲子") { Padding = new Padding(24) };
-        buildSwitch.Appearance = Appearance.Button;
-        buildSwitch.AutoSize = false;
-        buildSwitch.Text = "自动铲子：关闭";
-        buildSwitch.TextAlign = ContentAlignment.MiddleCenter;
-        buildSwitch.Size = new Size(210, 48);
-        buildSwitch.BackColor = Color.FromArgb(242, 242, 242);
-        buildSwitch.FlatStyle = FlatStyle.Flat;
-        buildSwitch.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 180);
+        TabPage page = new("自动铲子") { BackColor = Color.FromArgb(250, 250, 250) };
+        ConfigureToggle(buildSwitch, "自动铲子：关闭", new Point(28, 30));
         buildSwitch.CheckedChanged += (_, _) => SetBuildAssist(buildSwitch.Checked);
 
         buildStatus.AutoSize = false;
         buildStatus.Text = "当前状态：未启用";
-        buildStatus.Location = new Point(0, 78);
+        buildStatus.Location = new Point(28, 106);
         buildStatus.Size = new Size(480, 30);
+        buildStatus.ForeColor = Color.FromArgb(55, 60, 65);
 
         Label description = new()
         {
             AutoSize = false,
             Text = "长按左键，建造工事；长按右键，刨除工事",
-            Location = new Point(0, 120),
-            Size = new Size(480, 48)
+            Location = new Point(28, 160),
+            Size = new Size(480, 48),
+            ForeColor = Color.FromArgb(85, 90, 95)
         };
 
         page.Controls.Add(buildSwitch);
@@ -90,48 +115,43 @@ internal sealed class MainForm : Form
 
     private TabPage CreateRapidPastePage()
     {
-        TabPage page = new("极速抢车") { Padding = new Padding(24) };
+        TabPage page = new("极速抢车") { BackColor = Color.FromArgb(250, 250, 250) };
 
-        Label nameLabel = new() { Text = "小队名称", AutoSize = true, Location = new Point(0, 8) };
+        Label nameLabel = new() { Text = "小队名称", AutoSize = true, Location = new Point(28, 38) };
         squadNameBox.Text = "TANK";
-        squadNameBox.Location = new Point(95, 4);
-        squadNameBox.Size = new Size(180, 28);
+        squadNameBox.Location = new Point(124, 32);
+        squadNameBox.Size = new Size(200, 29);
         squadNameBox.TextChanged += (_, _) => PrepareClipboard();
 
-        Label intervalLabel = new() { Text = "发送间隔", AutoSize = true, Location = new Point(0, 54) };
+        Label intervalLabel = new() { Text = "发送间隔", AutoSize = true, Location = new Point(28, 91) };
         FlowLayoutPanel intervalPanel = new()
         {
-            Location = new Point(95, 46),
-            Size = new Size(385, 35),
+            Location = new Point(124, 82),
+            Size = new Size(385, 38),
             FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false
+            WrapContents = false,
+            BackColor = Color.Transparent
         };
         intervalPanel.Controls.Add(CreateIntervalOption("超快 10ms", 10, false));
         intervalPanel.Controls.Add(CreateIntervalOption("快速 50ms", 50, true));
         intervalPanel.Controls.Add(CreateIntervalOption("标准 100ms", 100, false));
 
-        rapidPasteSwitch.Appearance = Appearance.Button;
-        rapidPasteSwitch.AutoSize = false;
-        rapidPasteSwitch.Text = "极速抢车：关闭";
-        rapidPasteSwitch.TextAlign = ContentAlignment.MiddleCenter;
-        rapidPasteSwitch.Size = new Size(210, 48);
-        rapidPasteSwitch.Location = new Point(0, 100);
-        rapidPasteSwitch.BackColor = Color.FromArgb(242, 242, 242);
-        rapidPasteSwitch.FlatStyle = FlatStyle.Flat;
-        rapidPasteSwitch.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 180);
+        ConfigureToggle(rapidPasteSwitch, "极速抢车：关闭", new Point(28, 142));
         rapidPasteSwitch.CheckedChanged += (_, _) => SetRapidPaste(rapidPasteSwitch.Checked);
 
         rapidPasteStatus.AutoSize = false;
         rapidPasteStatus.Text = "当前状态：已停止（F9 切换）";
-        rapidPasteStatus.Location = new Point(0, 168);
+        rapidPasteStatus.Location = new Point(28, 218);
         rapidPasteStatus.Size = new Size(480, 30);
+        rapidPasteStatus.ForeColor = Color.FromArgb(55, 60, 65);
 
         Label modeDescription = new()
         {
             AutoSize = false,
             Text = "仅在 Squad 位于前台时循环粘贴建队命令",
-            Location = new Point(0, 208),
-            Size = new Size(480, 40)
+            Location = new Point(28, 270),
+            Size = new Size(480, 40),
+            ForeColor = Color.FromArgb(85, 90, 95)
         };
 
         page.Controls.Add(nameLabel);
@@ -142,6 +162,24 @@ internal sealed class MainForm : Form
         page.Controls.Add(rapidPasteStatus);
         page.Controls.Add(modeDescription);
         return page;
+    }
+
+    private static void ConfigureToggle(CheckBox toggle, string text, Point location)
+    {
+        toggle.Appearance = Appearance.Button;
+        toggle.AutoSize = false;
+        toggle.Text = text;
+        toggle.TextAlign = ContentAlignment.MiddleCenter;
+        toggle.Size = new Size(220, 48);
+        toggle.Location = location;
+        toggle.BackColor = Color.FromArgb(236, 239, 241);
+        toggle.ForeColor = Color.FromArgb(32, 37, 41);
+        toggle.Font = new Font("Microsoft YaHei UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
+        toggle.FlatStyle = FlatStyle.Flat;
+        toggle.FlatAppearance.BorderSize = 1;
+        toggle.FlatAppearance.BorderColor = Color.FromArgb(174, 181, 187);
+        toggle.FlatAppearance.MouseOverBackColor = Color.FromArgb(225, 230, 234);
+        toggle.FlatAppearance.CheckedBackColor = Color.FromArgb(210, 241, 224);
     }
 
     private RadioButton CreateIntervalOption(string text, int milliseconds, bool isChecked)
@@ -174,7 +212,8 @@ internal sealed class MainForm : Form
     {
         buildAssist.SetEnabled(enabled);
         buildSwitch.Text = enabled ? "自动铲子：开启" : "自动铲子：关闭";
-        buildSwitch.BackColor = enabled ? Color.FromArgb(213, 245, 227) : Color.FromArgb(242, 242, 242);
+        buildSwitch.BackColor = enabled ? Color.FromArgb(210, 241, 224) : Color.FromArgb(236, 239, 241);
+        buildSwitch.FlatAppearance.BorderColor = enabled ? Color.FromArgb(91, 162, 119) : Color.FromArgb(174, 181, 187);
     }
 
     private void SetRapidPaste(bool enabled)
@@ -183,7 +222,8 @@ internal sealed class MainForm : Form
         {
             rapidPaste.Stop();
             rapidPasteSwitch.Text = "极速抢车：关闭";
-            rapidPasteSwitch.BackColor = Color.FromArgb(242, 242, 242);
+            rapidPasteSwitch.BackColor = Color.FromArgb(236, 239, 241);
+            rapidPasteSwitch.FlatAppearance.BorderColor = Color.FromArgb(174, 181, 187);
             rapidPasteStatus.Text = "当前状态：已停止（F9 切换）";
             return;
         }
@@ -205,7 +245,8 @@ internal sealed class MainForm : Form
 
         rapidPaste.Start(pasteIntervalMilliseconds);
         rapidPasteSwitch.Text = "极速抢车：开启";
-        rapidPasteSwitch.BackColor = Color.FromArgb(213, 245, 227);
+        rapidPasteSwitch.BackColor = Color.FromArgb(210, 241, 224);
+        rapidPasteSwitch.FlatAppearance.BorderColor = Color.FromArgb(91, 162, 119);
         UpdateRapidPasteStatus();
     }
 
@@ -341,6 +382,8 @@ internal sealed class MainForm : Form
         rapidPaste.Dispose();
         buildAssist.Dispose();
         trayIcon.Visible = false;
+        trayIcon.Icon?.Dispose();
         trayIcon.Dispose();
+        applicationIcon.Dispose();
     }
 }

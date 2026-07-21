@@ -6,15 +6,15 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v8.0": {
-      "SquadTools/1.0.0": {
+      "Squad小帮手/1.2.0": {
         "runtime": {
-          "SquadTools.dll": {}
+          "Squad小帮手.dll": {}
         }
       }
     }
   },
   "libraries": {
-    "SquadTools/1.0.0": {
+    "Squad小帮手/1.2.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
