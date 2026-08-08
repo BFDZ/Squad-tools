@@ -6,15 +6,27 @@ namespace SquadTools;
 
 internal static class NativeMethods
 {
+    internal const int WhKeyboardLowLevel = 13;
+    internal const int WmKeyDown = 0x0100;
+    internal const int WmSystemKeyDown = 0x0104;
     internal const int WmHotKey = 0x0312;
+    internal const int VkF8 = 0x77;
     internal const int VkF9 = 0x78;
+    internal const int VkF10 = 0x79;
     internal const int VkOem3 = 0xC0;
     internal const int VkControl = 0x11;
+    internal const int VkLeftShift = 0xA0;
+    internal const int VkW = 0x57;
     internal const int VkV = 0x56;
     internal const int VkReturn = 0x0D;
 
     [DllImport("user32.dll")]
     internal static extern short GetAsyncKeyState(int virtualKey);
+
+    [DllImport("user32.dll")]
+    internal static extern uint MapVirtualKey(uint virtualKey, uint mapType);
+
+    internal const uint MapVkToScanCode = 0;
 
     [DllImport("user32.dll", SetLastError = true)]
     internal static extern uint SendInput(uint inputCount, Input[] inputs, int inputSize);
@@ -32,6 +44,25 @@ internal static class NativeMethods
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     internal static extern int GetWindowText(IntPtr windowHandle, StringBuilder text, int maxCount);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern IntPtr SetWindowsHookEx(
+        int hookId,
+        LowLevelKeyboardProc callback,
+        IntPtr moduleHandle,
+        uint threadId);
+
+    [DllImport("user32.dll")]
+    internal static extern IntPtr CallNextHookEx(IntPtr hookHandle, int code, IntPtr message, IntPtr data);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool UnhookWindowsHookEx(IntPtr hookHandle);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    internal static extern IntPtr GetModuleHandle(string? moduleName);
+
+    internal delegate IntPtr LowLevelKeyboardProc(int code, IntPtr message, IntPtr data);
 
     internal static bool IsSquadForeground()
     {
@@ -66,6 +97,7 @@ internal static class NativeMethods
                     Keyboard = new KeyboardInput
                     {
                         VirtualKey = virtualKey,
+                        ScanCode = (ushort)MapVirtualKey(virtualKey, MapVkToScanCode),
                         Flags = keyUp ? KeyboardInputFlags.KeyUp : KeyboardInputFlags.None
                     }
                 }
@@ -131,6 +163,23 @@ internal static class NativeMethods
         public ushort VirtualKey;
         public ushort ScanCode;
         public KeyboardInputFlags Flags;
+        public uint Time;
+        public UIntPtr ExtraInfo;
+    }
+
+    [Flags]
+    internal enum LowLevelKeyboardFlags : uint
+    {
+        None = 0,
+        Injected = 0x00000010
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct LowLevelKeyboardInput
+    {
+        public uint VirtualKey;
+        public uint ScanCode;
+        public LowLevelKeyboardFlags Flags;
         public uint Time;
         public UIntPtr ExtraInfo;
     }
