@@ -80,7 +80,7 @@
     "C:\\Users\\yy\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "1.4.0",
+    "version": "1.4.1",
     "restore": {
       "projectUniqueName": "I:\\opencode02\\squadtools\\squadtools.csproj",
       "projectName": "Squad小帮手",

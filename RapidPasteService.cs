@@ -55,15 +55,33 @@ internal sealed class RapidPasteService : IDisposable
             {
                 if (NativeMethods.IsSquadForeground())
                 {
-                    bool accepted = PressKey(NativeMethods.VkOem3);
-                    await Task.Delay(10, cancellationToken);
-                    accepted &= SendPasteShortcut();
-                    await Task.Delay(10, cancellationToken);
-                    accepted &= PressKey(NativeMethods.VkReturn);
-
-                    if (!accepted)
+                    if (!NativeMethods.SendKeyPress(NativeMethods.VkOem3))
                     {
-                        Error?.Invoke("Windows 未接受键盘控制输入，请以与游戏相同的权限运行本程序。");
+                        ReportInputError();
+                        return;
+                    }
+
+                    await Task.Delay(10, cancellationToken);
+                    if (!NativeMethods.IsSquadForeground())
+                    {
+                        continue;
+                    }
+
+                    if (!NativeMethods.SendChord(NativeMethods.VkControl, NativeMethods.VkV))
+                    {
+                        ReportInputError();
+                        return;
+                    }
+
+                    await Task.Delay(10, cancellationToken);
+                    if (!NativeMethods.IsSquadForeground())
+                    {
+                        continue;
+                    }
+
+                    if (!NativeMethods.SendKeyPress(NativeMethods.VkReturn))
+                    {
+                        ReportInputError();
                         return;
                     }
                 }
@@ -92,19 +110,9 @@ internal sealed class RapidPasteService : IDisposable
         }
     }
 
-    private static bool PressKey(ushort virtualKey)
+    private void ReportInputError()
     {
-        bool accepted = NativeMethods.SendKey(virtualKey);
-        return NativeMethods.SendKey(virtualKey, true) && accepted;
-    }
-
-    private static bool SendPasteShortcut()
-    {
-        bool accepted = NativeMethods.SendKey(NativeMethods.VkControl);
-        accepted &= NativeMethods.SendKey(NativeMethods.VkV);
-        accepted &= NativeMethods.SendKey(NativeMethods.VkV, true);
-        accepted &= NativeMethods.SendKey(NativeMethods.VkControl, true);
-        return accepted;
+        Error?.Invoke($"Windows 未接受键盘控制输入。{NativeMethods.DescribeLastInputError()}。请确认本程序与游戏权限一致。");
     }
 
     public void Dispose()

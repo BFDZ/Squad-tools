@@ -1,6 +1,7 @@
 using System;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace SquadTools;
 
@@ -28,6 +29,11 @@ internal static class NativeMethods
 
     internal const uint MapVkToScanCode = 0;
 
+    [ThreadStatic]
+    private static int lastInputError;
+
+    internal static int LastInputError => lastInputError;
+
     [DllImport("user32.dll", SetLastError = true)]
     internal static extern uint SendInput(uint inputCount, Input[] inputs, int inputSize);
 
@@ -42,8 +48,8 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     internal static extern IntPtr GetForegroundWindow();
 
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    internal static extern int GetWindowText(IntPtr windowHandle, StringBuilder text, int maxCount);
+    [DllImport("user32.dll")]
+    internal static extern uint GetWindowThreadProcessId(IntPtr windowHandle, out uint processId);
 
     [DllImport("user32.dll", SetLastError = true)]
     internal static extern IntPtr SetWindowsHookEx(
@@ -62,13 +68,55 @@ internal static class NativeMethods
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
     internal static extern IntPtr GetModuleHandle(string? moduleName);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool SetWindowPos(
+        IntPtr windowHandle,
+        IntPtr insertAfter,
+        int x,
+        int y,
+        int width,
+        int height,
+        uint flags);
+
     internal delegate IntPtr LowLevelKeyboardProc(int code, IntPtr message, IntPtr data);
 
     internal static bool IsSquadForeground()
     {
-        StringBuilder title = new(512);
-        GetWindowText(GetForegroundWindow(), title, title.Capacity);
-        return title.ToString().Contains("Squad", StringComparison.OrdinalIgnoreCase);
+        IntPtr foregroundWindow = GetForegroundWindow();
+        if (foregroundWindow == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        GetWindowThreadProcessId(foregroundWindow, out uint processId);
+        if (processId != 0)
+        {
+            try
+            {
+                using Process process = Process.GetProcessById((int)processId);
+                string processName = process.ProcessName;
+                if (processName.StartsWith("SquadGame", StringComparison.OrdinalIgnoreCase) ||
+                    processName.Equals("Squad", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+            catch (Win32Exception)
+            {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     internal static bool SendMouse(MouseInputFlags flags)
@@ -82,29 +130,83 @@ internal static class NativeMethods
             }
         ];
 
-        return SendInput(1, inputs, Marshal.SizeOf<Input>()) == 1;
+        return SendInputs(inputs);
     }
 
     internal static bool SendKey(ushort virtualKey, bool keyUp = false)
     {
         Input[] inputs =
         [
-            new Input
-            {
-                Type = InputType.Keyboard,
-                Data = new InputUnion
-                {
-                    Keyboard = new KeyboardInput
-                    {
-                        VirtualKey = virtualKey,
-                        ScanCode = (ushort)MapVirtualKey(virtualKey, MapVkToScanCode),
-                        Flags = keyUp ? KeyboardInputFlags.KeyUp : KeyboardInputFlags.None
-                    }
-                }
-            }
+            CreateKeyboardInput(virtualKey, keyUp)
         ];
 
-        return SendInput(1, inputs, Marshal.SizeOf<Input>()) == 1;
+        return SendInputs(inputs);
+    }
+
+    internal static bool SendKeyPress(ushort virtualKey)
+    {
+        return SendInputs(
+        [
+            CreateKeyboardInput(virtualKey, false),
+            CreateKeyboardInput(virtualKey, true)
+        ]);
+    }
+
+    internal static bool SendChord(ushort modifier, ushort virtualKey)
+    {
+        return SendInputs(
+        [
+            CreateKeyboardInput(modifier, false),
+            CreateKeyboardInput(virtualKey, false),
+            CreateKeyboardInput(virtualKey, true),
+            CreateKeyboardInput(modifier, true)
+        ]);
+    }
+
+    internal static string DescribeLastInputError()
+    {
+        return lastInputError == 0
+            ? "Windows 未提供具体错误，游戏也可能过滤了合成输入"
+            : $"Win32 错误 {lastInputError}：{new Win32Exception(lastInputError).Message}";
+    }
+
+    internal static void KeepWindowTopMost(IntPtr windowHandle)
+    {
+        const uint noMove = 0x0002;
+        const uint noSize = 0x0001;
+        const uint noActivate = 0x0010;
+        SetWindowPos(windowHandle, new IntPtr(-1), 0, 0, 0, 0, noMove | noSize | noActivate);
+    }
+
+    private static bool SendInputs(Input[] inputs)
+    {
+        lastInputError = 0;
+        uint sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<Input>());
+        if (sent == (uint)inputs.Length)
+        {
+            return true;
+        }
+
+        lastInputError = Marshal.GetLastWin32Error();
+        return false;
+    }
+
+    private static Input CreateKeyboardInput(ushort virtualKey, bool keyUp)
+    {
+        return new Input
+        {
+            Type = InputType.Keyboard,
+            Data = new InputUnion
+            {
+                Keyboard = new KeyboardInput
+                {
+                    VirtualKey = 0,
+                    ScanCode = (ushort)MapVirtualKey(virtualKey, MapVkToScanCode),
+                    Flags = KeyboardInputFlags.ScanCode |
+                        (keyUp ? KeyboardInputFlags.KeyUp : KeyboardInputFlags.None)
+                }
+            }
+        };
     }
 
     internal enum InputType : uint
@@ -126,7 +228,8 @@ internal static class NativeMethods
     internal enum KeyboardInputFlags : uint
     {
         None = 0,
-        KeyUp = 0x0002
+        KeyUp = 0x0002,
+        ScanCode = 0x0008
     }
 
     [StructLayout(LayoutKind.Sequential)]

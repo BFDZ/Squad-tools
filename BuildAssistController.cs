@@ -196,7 +196,7 @@ internal sealed class BuildAssistController : IDisposable
         monitorTimer.Stop();
         overlayForm.Hide();
         SetState(AssistState.Off, "未启用");
-        Error?.Invoke("Windows 未接受鼠标控制输入，请以与目标程序相同的权限运行本程序。");
+        Error?.Invoke($"Windows 未接受鼠标控制输入。{NativeMethods.DescribeLastInputError()}。请确认本程序与游戏权限一致。");
     }
 
     private void ResetTracking()

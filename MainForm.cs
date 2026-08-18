@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace SquadTools;
@@ -50,7 +51,7 @@ internal sealed class MainForm : Form
         Label footer = new()
         {
             Dock = DockStyle.Fill,
-            Text = "作者: lyl-103  版本号: 1.4.0",
+            Text = "作者: lyl-103  版本号: 1.4.1",
             TextAlign = ContentAlignment.MiddleRight,
             Padding = new Padding(0, 0, 12, 0),
             ForeColor = Color.FromArgb(105, 110, 115),
@@ -434,17 +435,20 @@ internal sealed class MainForm : Form
         base.OnHandleCreated(e);
         if (!NativeMethods.RegisterHotKey(Handle, F9HotKeyId, 0, NativeMethods.VkF9))
         {
-            rapidPasteStatus.Text = "当前状态：F9 热键注册失败，可能已被占用";
+            int error = Marshal.GetLastWin32Error();
+            rapidPasteStatus.Text = $"当前状态：F9 热键注册失败（Win32 {error}），可能已被占用";
         }
 
         if (!NativeMethods.RegisterHotKey(Handle, F8HotKeyId, 0, NativeMethods.VkF8))
         {
-            buildStatus.Text = "当前状态：F8 热键注册失败，可能已被占用";
+            int error = Marshal.GetLastWin32Error();
+            buildStatus.Text = $"当前状态：F8 热键注册失败（Win32 {error}），可能已被占用";
         }
 
         if (!NativeMethods.RegisterHotKey(Handle, F10HotKeyId, 0, NativeMethods.VkF10))
         {
-            autoRunStatus.Text = "当前状态：F10 热键注册失败，可能已被占用";
+            int error = Marshal.GetLastWin32Error();
+            autoRunStatus.Text = $"当前状态：F10 热键注册失败（Win32 {error}），可能已被占用";
         }
     }
 

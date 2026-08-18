@@ -68,7 +68,7 @@ internal sealed class AutoRunController : IDisposable
             if (!NativeMethods.SendKey(NativeMethods.VkW))
             {
                 Stop("未启用", true);
-                Error?.Invoke("Windows 未接受自动奔跑按键输入，请以与游戏相同的权限运行本程序。");
+                Error?.Invoke($"Windows 未接受自动奔跑按键输入。{NativeMethods.DescribeLastInputError()}。请确认本程序与游戏权限一致。");
                 return;
             }
 
@@ -83,7 +83,7 @@ internal sealed class AutoRunController : IDisposable
             if (!NativeMethods.SendKey(NativeMethods.VkLeftShift))
             {
                 Stop("未启用", true);
-                Error?.Invoke("Windows 未接受自动奔跑按键输入，请以与游戏相同的权限运行本程序。");
+                Error?.Invoke($"Windows 未接受自动奔跑按键输入。{NativeMethods.DescribeLastInputError()}。请确认本程序与游戏权限一致。");
                 return;
             }
 

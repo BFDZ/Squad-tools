@@ -47,12 +47,17 @@ internal sealed class OverlayForm : Form
     internal void ShowStatus(string message)
     {
         messageLabel.Text = message;
-        Rectangle area = Screen.PrimaryScreen?.WorkingArea ?? Screen.FromControl(this).WorkingArea;
+        IntPtr foregroundWindow = NativeMethods.GetForegroundWindow();
+        Rectangle area = foregroundWindow != IntPtr.Zero
+            ? Screen.FromHandle(foregroundWindow).WorkingArea
+            : (Screen.PrimaryScreen?.WorkingArea ?? Screen.FromControl(this).WorkingArea);
         Location = new Point(area.Right - Width - 24, area.Bottom - Height - 54 - (int)(area.Height * 0.27));
 
         if (!Visible)
         {
             Show();
         }
+
+        NativeMethods.KeepWindowTopMost(Handle);
     }
 }
