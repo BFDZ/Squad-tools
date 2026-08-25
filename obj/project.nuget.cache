@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "vLY2nPfJCs4=",
+  "dgSpecHash": "ytQIl/OvcQk=",
   "success": true,
   "projectFilePath": "I:\\opencode02\\squadtools\\squadtools.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\yy\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.29\\microsoft.net.illink.tasks.8.0.29.nupkg.sha512",
+    "C:\\Users\\yy\\.nuget\\packages\\microsoft.web.webview2\\1.0.2903.40\\microsoft.web.webview2.1.0.2903.40.nupkg.sha512",
     "C:\\Users\\yy\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.29\\microsoft.netcore.app.ref.8.0.29.nupkg.sha512",
     "C:\\Users\\yy\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.29\\microsoft.netcore.app.runtime.win-x64.8.0.29.nupkg.sha512",
     "C:\\Users\\yy\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.29\\microsoft.windowsdesktop.app.ref.8.0.29.nupkg.sha512",

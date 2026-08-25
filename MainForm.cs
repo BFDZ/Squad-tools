@@ -14,20 +14,31 @@ internal sealed class MainForm : Form
     private readonly BuildAssistController buildAssist = new();
     private readonly RapidPasteService rapidPaste = new();
     private readonly AutoRunController autoRun = new();
+    private readonly SquadLogReader squadLogReader;
+    private readonly MapGuessForm mapGuessForm;
+    private readonly ProxySettings proxySettings;
+    private readonly bool webView2Available;
     private readonly CheckBox buildSwitch = new();
     private readonly CheckBox rapidPasteSwitch = new();
     private readonly CheckBox autoRunSwitch = new();
     private readonly Label buildStatus = new();
     private readonly Label rapidPasteStatus = new();
     private readonly Label autoRunStatus = new();
+    private readonly Label mapGuessStatus = new();
+    private readonly CheckBox proxySwitch = new();
+    private readonly ComboBox proxyTypeBox = new();
+    private readonly TextBox proxyHostBox = new();
+    private readonly NumericUpDown proxyPortBox = new();
+    private readonly Label proxyStatus = new();
     private readonly TextBox squadNameBox = new();
     private readonly NotifyIcon trayIcon;
     private readonly Icon applicationIcon;
     private int pasteIntervalMilliseconds = 50;
     private bool allowClose;
 
-    internal MainForm()
+    internal MainForm(bool webView2Available)
     {
+        this.webView2Available = webView2Available;
         Text = "Squad小帮手";
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(560, 430);
@@ -38,6 +49,10 @@ internal sealed class MainForm : Form
         Font = new Font("Microsoft YaHei UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         applicationIcon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? (Icon)SystemIcons.Application.Clone();
         Icon = applicationIcon;
+        proxySettings = ProxySettingsStore.Load();
+        squadLogReader = new SquadLogReader();
+        string mapHostDirectory = Path.Combine(Application.StartupPath, "MapHost");
+        mapGuessForm = new MapGuessForm(applicationIcon, proxySettings, mapHostDirectory);
 
         TabControl tabs = new()
         {
@@ -47,11 +62,13 @@ internal sealed class MainForm : Form
         tabs.TabPages.Add(CreateBuildPage());
         tabs.TabPages.Add(CreateRapidPastePage());
         tabs.TabPages.Add(CreateAutoRunPage());
+        tabs.TabPages.Add(CreateMapToolPage());
+        tabs.TabPages.Add(CreateSettingsPage());
 
         Label footer = new()
         {
             Dock = DockStyle.Fill,
-            Text = "作者: lyl-103  版本号: 1.4.1",
+             Text = "作者: lyl-103  版本号: 1.4.2",
             TextAlign = ContentAlignment.MiddleRight,
             Padding = new Padding(0, 0, 12, 0),
             ForeColor = Color.FromArgb(105, 110, 115),
@@ -74,6 +91,12 @@ internal sealed class MainForm : Form
 
         ContextMenuStrip trayMenu = new();
         trayMenu.Items.Add("显示主界面", null, (_, _) => ShowMainWindow());
+        ToolStripMenuItem mapToolMenuItem = new("地图工具")
+        {
+            Enabled = webView2Available
+        };
+        mapToolMenuItem.Click += (_, _) => mapGuessForm.ShowWindow();
+        trayMenu.Items.Add(mapToolMenuItem);
         trayMenu.Items.Add("退出", null, (_, _) => ExitApplication());
         trayIcon = new NotifyIcon
         {
@@ -90,6 +113,13 @@ internal sealed class MainForm : Form
         autoRun.StatusChanged += message => UpdateControl(autoRunStatus, $"当前状态：{message}（F10 切换）");
         autoRun.Error += ShowAutoRunError;
         autoRun.Stopped += SynchronizeStoppedAutoRun;
+        squadLogReader.MapLayerChanged += selection =>
+        {
+            mapGuessForm.ApplyMapLayer(selection);
+            UpdateControl(mapGuessStatus, $"当前地图：{selection.Map}    Layer：{selection.Layer}");
+        };
+        squadLogReader.StatusChanged += message => UpdateControl(mapGuessStatus, message);
+        squadLogReader.ScanNow();
         PrepareClipboard();
 
         FormClosing += OnFormClosing;
@@ -199,6 +229,149 @@ internal sealed class MainForm : Form
         page.Controls.Add(autoRunStatus);
         page.Controls.Add(description);
         return page;
+    }
+
+    private TabPage CreateMapToolPage()
+    {
+        TabPage page = new("地图工具") { BackColor = Color.FromArgb(250, 250, 250) };
+        Button openButton = new()
+        {
+            Text = "打开地图工具窗口",
+            Location = new Point(28, 30),
+            Size = new Size(220, 48),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(236, 239, 241),
+            ForeColor = Color.FromArgb(32, 37, 41),
+            Font = new Font("Microsoft YaHei UI", 10F, FontStyle.Bold, GraphicsUnit.Point)
+        };
+        openButton.Enabled = webView2Available;
+        openButton.Click += (_, _) => mapGuessForm.ShowWindow();
+
+        mapGuessStatus.AutoSize = false;
+        mapGuessStatus.Text = webView2Available
+            ? "等待 Squad 地图日志"
+            : "未安装 WebView2 Runtime，地图工具不可用";
+        mapGuessStatus.Location = new Point(28, 106);
+        mapGuessStatus.Size = new Size(480, 30);
+        mapGuessStatus.ForeColor = Color.FromArgb(55, 60, 65);
+
+        Label description = new()
+        {
+            AutoSize = false,
+            Text = "支持地图点位刷新预测，以及迫击炮等远程火力坐标计算",
+            Location = new Point(28, 160),
+            Size = new Size(480, 48),
+            ForeColor = Color.FromArgb(85, 90, 95)
+        };
+
+        page.Controls.Add(openButton);
+        page.Controls.Add(mapGuessStatus);
+        page.Controls.Add(description);
+        return page;
+    }
+
+    private TabPage CreateSettingsPage()
+    {
+        TabPage page = new("设置") { BackColor = Color.FromArgb(250, 250, 250) };
+
+        proxySwitch.Appearance = Appearance.Button;
+        proxySwitch.AutoSize = false;
+        proxySwitch.Text = proxySettings.Enabled ? "网络代理：开启" : "网络代理：关闭";
+        proxySwitch.TextAlign = ContentAlignment.MiddleCenter;
+        proxySwitch.Size = new Size(220, 48);
+        proxySwitch.Location = new Point(28, 30);
+        proxySwitch.BackColor = proxySettings.Enabled
+            ? Color.FromArgb(210, 241, 224)
+            : Color.FromArgb(236, 239, 241);
+        proxySwitch.FlatStyle = FlatStyle.Flat;
+        proxySwitch.FlatAppearance.BorderSize = 1;
+        proxySwitch.FlatAppearance.BorderColor = proxySettings.Enabled
+            ? Color.FromArgb(91, 162, 119)
+            : Color.FromArgb(174, 181, 187);
+        proxySwitch.Checked = proxySettings.Enabled;
+        proxySwitch.CheckedChanged += (_, _) =>
+        {
+            proxySwitch.Text = proxySwitch.Checked ? "网络代理：开启" : "网络代理：关闭";
+            proxySwitch.BackColor = proxySwitch.Checked
+                ? Color.FromArgb(210, 241, 224)
+                : Color.FromArgb(236, 239, 241);
+            proxySwitch.FlatAppearance.BorderColor = proxySwitch.Checked
+                ? Color.FromArgb(91, 162, 119)
+                : Color.FromArgb(174, 181, 187);
+        };
+
+        Label typeLabel = new() { Text = "代理类型", AutoSize = true, Location = new Point(28, 108) };
+        proxyTypeBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        proxyTypeBox.Items.AddRange(["HTTP", "SOCKS5"]);
+        proxyTypeBox.SelectedIndex = proxySettings.Type == ProxyType.Socks5 ? 1 : 0;
+        proxyTypeBox.Location = new Point(124, 102);
+        proxyTypeBox.Size = new Size(140, 29);
+
+        Label hostLabel = new() { Text = "IP 地址", AutoSize = true, Location = new Point(28, 155) };
+        proxyHostBox.Text = proxySettings.Host;
+        proxyHostBox.PlaceholderText = "例如 127.0.0.1";
+        proxyHostBox.Location = new Point(124, 149);
+        proxyHostBox.Size = new Size(220, 29);
+
+        Label portLabel = new() { Text = "端口", AutoSize = true, Location = new Point(28, 202) };
+        proxyPortBox.Minimum = 1;
+        proxyPortBox.Maximum = 65535;
+        proxyPortBox.Value = Math.Clamp(proxySettings.Port, 1, 65535);
+        proxyPortBox.Location = new Point(124, 196);
+        proxyPortBox.Size = new Size(140, 29);
+
+        Button saveButton = new()
+        {
+            Text = "保存代理设置",
+            Location = new Point(28, 250),
+            Size = new Size(180, 42),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(236, 239, 241),
+            ForeColor = Color.FromArgb(32, 37, 41)
+        };
+        saveButton.Click += (_, _) => SaveProxySettings();
+
+        proxyStatus.AutoSize = false;
+        proxyStatus.Location = new Point(28, 315);
+        proxyStatus.Size = new Size(480, 48);
+        proxyStatus.ForeColor = Color.FromArgb(55, 60, 65);
+        proxyStatus.Text = "代理设置将在首次创建地图工具网页时生效；已打开过网页时请重启程序。";
+
+        page.Controls.Add(proxySwitch);
+        page.Controls.Add(typeLabel);
+        page.Controls.Add(proxyTypeBox);
+        page.Controls.Add(hostLabel);
+        page.Controls.Add(proxyHostBox);
+        page.Controls.Add(portLabel);
+        page.Controls.Add(proxyPortBox);
+        page.Controls.Add(saveButton);
+        page.Controls.Add(proxyStatus);
+        return page;
+    }
+
+    private void SaveProxySettings()
+    {
+        string host = proxyHostBox.Text.Trim();
+        int port = (int)proxyPortBox.Value;
+        if (proxySwitch.Checked && host.Length == 0)
+        {
+            proxyStatus.Text = "启用代理时必须填写 IP 地址或主机名。";
+            return;
+        }
+
+        proxySettings.Enabled = proxySwitch.Checked;
+        proxySettings.Type = proxyTypeBox.SelectedIndex == 1 ? ProxyType.Socks5 : ProxyType.Http;
+        proxySettings.Host = host;
+        proxySettings.Port = port;
+        if (!ProxySettingsStore.Save(proxySettings, out string error))
+        {
+            proxyStatus.Text = error;
+            return;
+        }
+
+        proxyStatus.Text = proxySettings.Enabled
+            ? $"代理设置已保存：{proxySettings.Type} {proxySettings.Host}:{proxySettings.Port}，首次创建网页时生效。"
+            : "网络代理已关闭，设置已保存。";
     }
 
     private static void ConfigureToggle(CheckBox toggle, string text, Point location)
@@ -488,6 +661,8 @@ internal sealed class MainForm : Form
 
     private void DisposeServices()
     {
+        mapGuessForm.CloseWindow();
+        squadLogReader.Dispose();
         rapidPaste.Dispose();
         autoRun.Dispose();
         buildAssist.Dispose();

@@ -5,7 +5,7 @@
   },
   "projects": {
     "I:\\opencode02\\squadtools\\squadtools.csproj": {
-      "version": "1.4.1",
+      "version": "1.4.2",
       "restore": {
         "projectUniqueName": "I:\\opencode02\\squadtools\\squadtools.csproj",
         "projectName": "Squad小帮手",
@@ -51,6 +51,10 @@
               "target": "Package",
               "version": "[8.0.29, )",
               "autoReferenced": true
+            },
+            "Microsoft.Web.WebView2": {
+              "target": "Package",
+              "version": "[1.0.2903.40, )"
             }
           },
           "imports": [

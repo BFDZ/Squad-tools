@@ -14,10 +14,27 @@
     <Description>Squad小帮手</Description>
     <Company>lyl-103</Company>
     <Authors>lyl-103</Authors>
-    <Version>1.4.1</Version>
-    <AssemblyVersion>1.4.1.0</AssemblyVersion>
-    <FileVersion>1.4.1.0</FileVersion>
-    <InformationalVersion>1.4.1</InformationalVersion>
+    <Version>1.4.2</Version>
+    <AssemblyVersion>1.4.2.0</AssemblyVersion>
+    <FileVersion>1.4.2.0</FileVersion>
+    <InformationalVersion>1.4.2</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+  </ItemGroup>
+  <Target Name="CopyLocalMapHost" AfterTargets="Publish">
+    <ItemGroup>
+      <LocalMapHostFiles Include="I:\opencode02\Squad.ICU\MapHost\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(LocalMapHostFiles)" DestinationFiles="@(LocalMapHostFiles->'$(PublishDir)MapHost\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
 </Project>
