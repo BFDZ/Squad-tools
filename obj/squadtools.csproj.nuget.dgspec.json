@@ -5,7 +5,7 @@
   },
   "projects": {
     "I:\\opencode02\\squadtools\\squadtools.csproj": {
-      "version": "1.4.2",
+      "version": "1.5.0",
       "restore": {
         "projectUniqueName": "I:\\opencode02\\squadtools\\squadtools.csproj",
         "projectName": "Squad小帮手",
@@ -46,6 +46,14 @@
           "framework": "net8.0-windows7.0",
           "targetAlias": "net8.0-windows",
           "dependencies": {
+            "Avalonia": {
+              "target": "Package",
+              "version": "[11.3.20, )"
+            },
+            "Avalonia.Desktop": {
+              "target": "Package",
+              "version": "[11.3.20, )"
+            },
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
               "target": "Package",
@@ -55,6 +63,10 @@
             "Microsoft.Web.WebView2": {
               "target": "Package",
               "version": "[1.0.2903.40, )"
+            },
+            "SukiUI": {
+              "target": "Package",
+              "version": "[6.1.1, )"
             }
           },
           "imports": [

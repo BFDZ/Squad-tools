@@ -1,0 +1,5 @@
+I:\opencode02\squadtools\publish\v1.5.0\libSkiaSharp.pdb
+I:\opencode02\squadtools\publish\v1.5.0\Microsoft.Web.WebView2.Core.xml
+I:\opencode02\squadtools\publish\v1.5.0\Microsoft.Web.WebView2.WinForms.xml
+I:\opencode02\squadtools\publish\v1.5.0\Microsoft.Web.WebView2.Wpf.xml
+I:\opencode02\squadtools\publish\v1.5.0\Squad小帮手.exe

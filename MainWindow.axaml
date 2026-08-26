@@ -1,0 +1,53 @@
+<suki:SukiWindow xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+                 x:Class="SquadTools.MainWindow"
+                  Title="Squad小帮手 v1.5.0"
+                  Icon="/ico/squadtools.ico"
+                  Width="800"
+                  Height="640"
+                  MinWidth="720"
+                  MinHeight="560"
+                  WindowStartupLocation="CenterScreen"
+                  ExtendClientAreaToDecorationsHint="True"
+                  ExtendClientAreaChromeHints="PreferSystemChrome"
+                  ExtendClientAreaTitleBarHeightHint="36"
+                  SystemDecorations="Full">
+  <Grid Background="{DynamicResource BackgroundBrush}">
+    <Grid ColumnDefinitions="190,*">
+      <Border Grid.Column="0" Background="{DynamicResource NavigationRailBrush}" Padding="10,56,10,20">
+        <Grid RowDefinitions="Auto,*,Auto">
+          <StackPanel HorizontalAlignment="Center" Spacing="8">
+            <Border Width="76" Height="76" Background="Transparent" ClipToBounds="True">
+              <Image Source="/ico/squadtools.ico" Stretch="Uniform" />
+            </Border>
+            <TextBlock Text="Squad小帮手" FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            <TextBlock Text="v1.5.0" FontSize="12" Opacity="0.6" HorizontalAlignment="Center" />
+          </StackPanel>
+          <StackPanel x:Name="NavigationPanel" Grid.Row="1" Margin="0,30,0,0" Spacing="8">
+            <Button Classes="NavigationButton" Tag="0" Click="Navigate">
+              <StackPanel Orientation="Horizontal"><TextBlock Classes="NavIcon" Text="⚒" /><TextBlock VerticalAlignment="Center" Text="自动工具" /></StackPanel>
+            </Button>
+            <Button Classes="NavigationButton" Tag="1" Click="Navigate">
+              <StackPanel Orientation="Horizontal"><TextBlock Classes="NavIcon" Text="▧" /><TextBlock VerticalAlignment="Center" Text="地图工具" /></StackPanel>
+            </Button>
+            <Button Classes="NavigationButton" Tag="2" Click="Navigate">
+              <StackPanel Orientation="Horizontal"><TextBlock Classes="NavIcon" Text="⚙" /><TextBlock VerticalAlignment="Center" Text="网络设置" /></StackPanel>
+            </Button>
+            <Button Classes="NavigationButton" Tag="3" Click="Navigate">
+              <StackPanel Orientation="Horizontal"><TextBlock Classes="NavIcon" Text="ⓘ" /><TextBlock VerticalAlignment="Center" Text="关于" /></StackPanel>
+            </Button>
+          </StackPanel>
+          <TextBlock Grid.Row="2" Text="作者：lyl-103" FontSize="11" Opacity="0.5" HorizontalAlignment="Center" />
+        </Grid>
+      </Border>
+      <ScrollViewer Grid.Column="1" Margin="0,36,0,0" Padding="28" HorizontalScrollBarVisibility="Disabled">
+        <ContentControl x:Name="PageHost" />
+      </ScrollViewer>
+    </Grid>
+    <Button Classes="IconButton" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,28,0"
+            Click="ToggleTheme" ToolTip.Tip="切换浅色/深色主题">
+      <TextBlock Text="◐" FontSize="17" />
+    </Button>
+  </Grid>
+</suki:SukiWindow>

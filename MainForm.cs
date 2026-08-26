@@ -7,6 +7,8 @@ namespace SquadTools;
 
 internal sealed class MainForm : Form
 {
+    private const int WsExToolWindow = 0x00000080;
+    private const int WsExAppWindow = 0x00040000;
     private const int F9HotKeyId = 1;
     private const int F10HotKeyId = 2;
     private const int F8HotKeyId = 3;
@@ -33,19 +35,24 @@ internal sealed class MainForm : Form
     private readonly TextBox squadNameBox = new();
     private readonly NotifyIcon trayIcon;
     private readonly Icon applicationIcon;
+    private readonly bool serviceMode;
     private int pasteIntervalMilliseconds = 50;
     private bool allowClose;
 
-    internal MainForm(bool webView2Available)
+    internal MainForm(bool webView2Available, bool serviceMode = false)
     {
+        this.serviceMode = serviceMode;
         this.webView2Available = webView2Available;
         Text = "Squad小帮手";
+        ShowInTaskbar = false;
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(560, 430);
         MinimumSize = new Size(560, 430);
         MaximumSize = new Size(560, 430);
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
+        WindowState = FormWindowState.Minimized;
+        Opacity = 0;
         Font = new Font("Microsoft YaHei UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
         applicationIcon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? (Icon)SystemIcons.Application.Clone();
         Icon = applicationIcon;
@@ -68,7 +75,7 @@ internal sealed class MainForm : Form
         Label footer = new()
         {
             Dock = DockStyle.Fill,
-             Text = "作者: lyl-103  版本号: 1.4.2",
+             Text = "作者: lyl-103  版本号: 1.5.0",
             TextAlign = ContentAlignment.MiddleRight,
             Padding = new Padding(0, 0, 12, 0),
             ForeColor = Color.FromArgb(105, 110, 115),
@@ -90,14 +97,20 @@ internal sealed class MainForm : Form
         Controls.Add(shell);
 
         ContextMenuStrip trayMenu = new();
-        trayMenu.Items.Add("显示主界面", null, (_, _) => ShowMainWindow());
+        trayMenu.Items.Add("显示主界面", null, (_, _) =>
+        {
+            if (serviceMode) LegacyRuntime.ShowMainWindow(); else ShowMainWindow();
+        });
         ToolStripMenuItem mapToolMenuItem = new("地图工具")
         {
             Enabled = webView2Available
         };
         mapToolMenuItem.Click += (_, _) => mapGuessForm.ShowWindow();
         trayMenu.Items.Add(mapToolMenuItem);
-        trayMenu.Items.Add("退出", null, (_, _) => ExitApplication());
+        trayMenu.Items.Add("退出", null, (_, _) =>
+        {
+            if (serviceMode) LegacyRuntime.ExitApplication(); else ExitApplication();
+        });
         trayIcon = new NotifyIcon
         {
             Icon = (Icon)applicationIcon.Clone(),
@@ -105,6 +118,10 @@ internal sealed class MainForm : Form
             ContextMenuStrip = trayMenu,
             Visible = true
         };
+        if (serviceMode)
+        {
+            trayIcon.Visible = false;
+        }
         trayIcon.DoubleClick += (_, _) => ShowMainWindow();
 
         buildAssist.StatusChanged += message => UpdateControl(buildStatus, $"当前状态：{message}（F8 切换）");
@@ -124,6 +141,18 @@ internal sealed class MainForm : Form
 
         FormClosing += OnFormClosing;
         FormClosed += (_, _) => DisposeServices();
+    }
+
+    // Keep the background WinForms host out of the Windows task switcher.
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            CreateParams parameters = base.CreateParams;
+            parameters.ExStyle |= WsExToolWindow;
+            parameters.ExStyle &= ~WsExAppWindow;
+            return parameters;
+        }
     }
 
     private TabPage CreateBuildPage()
@@ -670,5 +699,28 @@ internal sealed class MainForm : Form
         trayIcon.Icon?.Dispose();
         trayIcon.Dispose();
         applicationIcon.Dispose();
+    }
+
+    internal void ToggleBuildFromShell() => buildSwitch.Checked = !buildSwitch.Checked;
+    internal void ToggleRapidPasteFromShell() => rapidPasteSwitch.Checked = !rapidPasteSwitch.Checked;
+    internal void ToggleAutoRunFromShell() => autoRunSwitch.Checked = !autoRunSwitch.Checked;
+    internal void ConfigureRapidPasteFromShell(string squadName, int intervalMilliseconds)
+    {
+        squadNameBox.Text = squadName;
+        pasteIntervalMilliseconds = intervalMilliseconds;
+        PrepareClipboard();
+    }
+    internal void ShowMapToolFromShell()
+    {
+        if (webView2Available)
+        {
+            mapGuessForm.ShowWindow();
+        }
+    }
+
+    internal void ShutdownFromShell()
+    {
+        allowClose = true;
+        Close();
     }
 }

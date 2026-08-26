@@ -1,0 +1,92 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:suki="clr-namespace:SukiUI;assembly=SukiUI"
+             x:Class="SquadTools.App">
+  <Application.Resources>
+      <ResourceDictionary>
+        <ResourceDictionary.ThemeDictionaries>
+          <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="NavigationRailBrush" Color="#E5EAF2" />
+            <SolidColorBrush x:Key="NavigationItemHoverBrush" Color="#C9D5E8" />
+            <SolidColorBrush x:Key="NavigationItemSelectedBrush" Color="#C0CFE5" />
+            <SolidColorBrush x:Key="NavigationAccentBrush" Color="#2F6FED" />
+          </ResourceDictionary>
+          <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="NavigationRailBrush" Color="#182337" />
+            <SolidColorBrush x:Key="NavigationItemHoverBrush" Color="#2A3B59" />
+            <SolidColorBrush x:Key="NavigationItemSelectedBrush" Color="#304B78" />
+            <SolidColorBrush x:Key="NavigationAccentBrush" Color="#76A8FF" />
+          </ResourceDictionary>
+        </ResourceDictionary.ThemeDictionaries>
+      </ResourceDictionary>
+  </Application.Resources>
+  <Application.Styles>
+    <suki:SukiTheme ThemeColor="Blue" Locale="zh-CN" />
+    <Style Selector="Button.IconButton">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="MinWidth" Value="34" />
+      <Setter Property="Foreground" Value="#64748B" />
+    </Style>
+    <Style Selector="Button.IconButton:pointerover">
+      <Setter Property="Background" Value="#142D5B9B" />
+    </Style>
+    <Style Selector="Button.CloseButton:pointerover">
+      <Setter Property="Background" Value="#22EF4444" />
+    </Style>
+    <Style Selector="Button.NavigationButton">
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="Padding" Value="16,13" />
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.2" />
+          <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.NavigationButton:pointerover">
+      <Setter Property="Background" Value="{DynamicResource NavigationItemHoverBrush}" />
+    </Style>
+    <Style Selector="Button.NavigationButton.Selected">
+      <Setter Property="Background" Value="{DynamicResource NavigationItemSelectedBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource NavigationAccentBrush}" />
+    </Style>
+    <Style Selector="TextBlock.NavIcon">
+      <Setter Property="Width" Value="28" />
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="TextAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Opacity" Value="1" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+          <DoubleTransition Property="Width" Duration="0:0:0.2" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.NavigationButton.Selected TextBlock.NavIcon">
+      <Setter Property="Width" Value="0" />
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="ToggleSwitch.ToolSwitch">
+      <Setter Property="MinWidth" Value="54" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.LinkButton">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Foreground" Value="{DynamicResource NavigationAccentBrush}" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.LinkButton:pointerover">
+      <Setter Property="Opacity" Value="0.72" />
+    </Style>
+  </Application.Styles>
+</Application>
