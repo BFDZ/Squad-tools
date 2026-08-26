@@ -4,6 +4,8 @@
 
 一个 Squad 游戏小工具：本地运行、无需登录，体积小、启动迅速。
 
+**[发布和下载页](https://github.com/BFDZ/Squad-tools/releases)**
+
 ## 运行说明
 
 - 系统要求：Windows 10/11，需已安装 [.NET](https://dotnet.microsoft.com/en-us/download)
