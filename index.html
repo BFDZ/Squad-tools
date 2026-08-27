@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Squad小帮手 — 战术小队全能工具</title>
+<link rel="icon" href="/ico/squadtools.ico" type="image/x-icon">
+<style>
+/* SECTION: base */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0b0f14;
+  --bg-soft: #10161d;
+  --card: #161d26;
+  --card-hover: #1c2530;
+  --line: #263140;
+  --text: #e8eef4;
+  --muted: #9aa7b6;
+  --accent: #f59e0b;
+  --accent-2: #fb923c;
+  --accent-soft: rgba(245, 158, 11, 0.12);
+  --radius: 14px;
+}
+html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  line-height: 1.7;
+}
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+.container { width: min(1120px, 92%); margin: 0 auto; }
+
+/* SECTION: nav */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(11, 15, 20, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.nav-inner { display: flex; align-items: center; gap: 24px; height: 64px; }
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; }
+.logo-icon { width: 26px; height: 26px; object-fit: contain; flex-shrink: 0; }
+.logo-badge {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px;
+}
+.nav-links { display: flex; gap: 4px; margin-left: auto; }
+.nav-links a {
+  padding: 8px 14px; border-radius: 8px; color: var(--muted);
+  font-size: 14.5px; transition: color .2s, background .2s;
+}
+.nav-links a:hover { color: var(--text); background: var(--card); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 22px; border-radius: 10px; border: none; cursor: pointer;
+  font-size: 15px; font-weight: 600; font-family: inherit;
+  transition: transform .15s, box-shadow .2s, background .2s;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #1a1206;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.3);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4); }
+.btn-ghost {
+  background: var(--card); color: var(--text); border: 1px solid var(--line);
+}
+.btn-ghost:hover { background: var(--card-hover); transform: translateY(-2px); }
+.nav .btn { padding: 8px 18px; font-size: 14px; margin-left: 8px; }
+
+/* SECTION: hero */
+.hero { padding: 96px 0 72px; text-align: center; position: relative; overflow: hidden; }
+.hero::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(600px 300px at 20% 0%, rgba(245, 158, 11, 0.12), transparent 70%),
+    radial-gradient(500px 280px at 85% 20%, rgba(251, 146, 60, 0.08), transparent 70%);
+}
+.hero > .container { position: relative; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 16px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-size: 13.5px; font-weight: 600; margin-bottom: 22px;
+}
+.hero h1 {
+  font-size: clamp(34px, 6vw, 56px); font-weight: 800; letter-spacing: 1px;
+  background: linear-gradient(120deg, #fff 30%, var(--accent-2));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.hero-slogan { margin-top: 14px; font-size: clamp(16px, 2.6vw, 21px); color: var(--muted); }
+.hero-desc { margin: 18px auto 0; max-width: 620px; color: var(--muted); font-size: 15px; }
+.hero-tags { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 26px; }
+.hero-tags span {
+  padding: 6px 14px; border-radius: 999px; font-size: 13px;
+  background: var(--card); border: 1px solid var(--line); color: var(--muted);
+}
+.hero-cta { display: flex; gap: 14px; justify-content: center; margin-top: 36px; flex-wrap: wrap; }
+
+/* SECTION: section common */
+.section { padding: 72px 0; }
+.section-head { text-align: center; margin-bottom: 44px; }
+.section-head h2 { font-size: clamp(24px, 4vw, 32px); font-weight: 800; }
+.section-head p { margin-top: 10px; color: var(--muted); font-size: 15px; }
+.section-head .eyebrow {
+  display: inline-block; color: var(--accent); font-size: 13px; font-weight: 700;
+  letter-spacing: 3px; margin-bottom: 10px; text-transform: uppercase;
+}
+
+/* SECTION: features */
+.feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.feature-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 26px 22px; transition: transform .2s, border-color .2s, background .2s;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.feature-card:hover { transform: translateY(-4px); border-color: rgba(245, 158, 11, 0.45); background: var(--card-hover); }
+.feature-icon {
+  width: 46px; height: 46px; border-radius: 12px; font-size: 23px;
+  background: var(--accent-soft); display: flex; align-items: center; justify-content: center;
+}
+.feature-card h3 { font-size: 17.5px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.key-badge {
+  font-size: 12px; font-weight: 700; color: var(--accent);
+  background: var(--accent-soft); border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 2px 9px; border-radius: 6px; font-family: Consolas, monospace;
+}
+.feature-card p { color: var(--muted); font-size: 14px; flex: 1; }
+
+/* SECTION: more features */
+.more-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.more-card {
+  background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px;
+  padding: 18px 20px; display: flex; gap: 14px; align-items: flex-start;
+  transition: border-color .2s, background .2s;
+}
+.more-card:hover { border-color: rgba(245, 158, 11, 0.4); background: var(--card); }
+.more-card .mi { font-size: 22px; line-height: 1.3; }
+.more-card h4 { font-size: 15.5px; font-weight: 700; }
+.more-card p { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+
+/* SECTION: preview */
+.preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.shot-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.shot-frame {
+  position: relative; aspect-ratio: 4 / 3; overflow: hidden; cursor: zoom-in;
+  background: linear-gradient(135deg, #1a2230, #10161d);
+}
+.shot-frame img { width: 100%; height: 100%; object-fit: cover; object-position: top center; transition: transform .3s; }
+.shot-frame:hover img { transform: scale(1.03); }
+.shot-fallback {
+  position: absolute; inset: 0; display: none;
+  align-items: center; justify-content: center;
+  color: var(--muted); font-size: 14px;
+}
+.shot-frame.img-error img { display: none; }
+.shot-frame.img-error .shot-fallback { display: flex; }
+.shot-meta { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.shot-meta h3 { font-size: 16px; font-weight: 700; }
+.shot-meta p { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.shot-zoom {
+  flex-shrink: 0; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+  background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(245, 158, 11, 0.35);
+  font-size: 13px; font-weight: 600; font-family: inherit;
+}
+.shot-zoom:hover { background: rgba(245, 158, 11, 0.2); }
+
+/* SECTION: lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(5, 8, 12, 0.92); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 4vh 4vw; cursor: zoom-out;
+}
+.lightbox[hidden] { display: none; }
+.lightbox img {
+  max-width: 100%; max-height: 86vh; border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.lightbox-title {
+  position: absolute; bottom: 3vh; left: 0; right: 0; text-align: center;
+  color: var(--muted); font-size: 14px;
+}
+
+/* SECTION: download */
+.download-box {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 146, 60, 0.04));
+  border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 18px;
+  padding: 44px 40px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px;
+}
+.download-left h3 { font-size: 24px; font-weight: 800; }
+.download-left p { color: var(--muted); margin-top: 12px; font-size: 14.5px; }
+.download-left .btn { margin-top: 26px; margin-right: 12px; }
+.req-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.req-list li {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: rgba(11, 15, 20, 0.5); border: 1px solid var(--line);
+  border-radius: 10px; padding: 12px 16px; font-size: 13.5px; color: var(--muted);
+}
+.req-list li b { color: var(--text); font-weight: 600; }
+.req-list .dot { color: var(--accent); font-weight: 700; }
+
+/* SECTION: footer */
+.footer { border-top: 1px solid var(--line); padding: 30px 0; }
+.footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 13.5px; }
+.footer a:hover { color: var(--accent); }
+
+/* SECTION: responsive */
+@media (max-width: 960px) {
+  .feature-grid { grid-template-columns: repeat(2, 1fr); }
+  .more-grid { grid-template-columns: repeat(2, 1fr); }
+  .download-box { grid-template-columns: 1fr; padding: 32px 26px; }
+}
+@media (max-width: 640px) {
+  .nav-links { display: none; }
+  .feature-grid, .more-grid, .preview-grid { grid-template-columns: 1fr; }
+  .hero { padding: 64px 0 56px; }
+  .section { padding: 56px 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- SECTION: nav -->
+<header class="nav">
+  <div class="container nav-inner">
+    <a class="logo" href="#top">
+      <img class="logo-icon" src="ico/squadtools.ico" alt="Squad小帮手图标">
+      <span>Squad小帮手</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">核心功能</a>
+      <a href="#more">更多亮点</a>
+      <a href="#preview">界面预览</a>
+      <a href="#download">下载安装</a>
+    </nav>
+    <a class="btn btn-primary" href="https://github.com/BFDZ/Squad-tools/releases" target="_blank" rel="noopener">立即下载</a>
+  </div>
+</header>
+
+<!-- SECTION: hero -->
+<section class="hero" id="top">
+  <div class="container">
+    <span class="hero-badge">🎖 当前版本 v1.5.0</span>
+    <h1>Squad小帮手</h1>
+    <p class="hero-slogan">战术小队游戏必备 —— “先发制人，决胜战场”</p>
+    <p class="hero-desc">一款为 Squad 玩家打造的本地游戏辅助工具箱：自动铲子、极速抢车、自动奔跑、地图猜点与迫击炮计算，让你把精力留给战场本身。</p>
+    <div class="hero-tags">
+      <span>本地运行</span><span>无需登录</span><span>多个功能</span><span>启动迅速</span><span>免费开源</span>
+    </div>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="https://github.com/BFDZ/Squad-tools/releases" target="_blank" rel="noopener">⬇ 立即下载</a>
+      <a class="btn btn-ghost" href="https://pan.quark.cn/s/27e1447df60f?pwd=9Wne" target="_blank" rel="noopener">📖 夸克网盘下载</a>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: features -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Core Features</span>
+      <h2>核心功能</h2>
+      <p>四大实用工具，快捷键一键开关，最小化托盘后后台同样有效</p>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔨</div>
+        <h3>自动铲子 <span class="key-badge">F8</span></h3>
+        <p>长按鼠标左键建造工事、长按右键刨除工事。按住约 3 秒自动进入建造/刨除状态，无需一直按着，松开或移动鼠标即停止。黑奴的福音，龟壳队的帮手。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🚀</div>
+        <h3>极速抢车 <span class="key-badge">F9</span></h3>
+        <p>仅在 Squad 位于前台时，自动循环粘贴建队命令，快速抢占小队位。支持自定义小队名称与发送间隔（超快 10ms / 快速 50ms / 标准 100ms）。今晚我在秋名山等你。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏃</div>
+        <h3>自动奔跑 <span class="key-badge">F10</span></h3>
+        <p>适用于无限体力服务器，开启后自动按住 W + Shift 持续奔跑，解放双手。按下任意键或切出 Squad 窗口时自动停止，安全省心。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗺️</div>
+        <h3>地图工具</h3>
+        <p>支持 RAAS 地图猜点与迫击炮等远程火力坐标计算。启动后自动扫描 Squad 日志中的最新地图与 Layer，首次打开即定位到对应地图页面。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: more features -->
+<section class="section" id="more">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">More</span>
+      <h2>更多亮点</h2>
+      <p>从计算器到猜点，把每一个细节都安排明白</p>
+    </div>
+    <div class="more-grid">
+      <div class="more-card"><span class="mi">🎯</span><div><h4>迫击炮计算</h4><p>带高度差计算、置顶标识与常用点位热力图，还能结合 OCR 同步游戏内地图。</p></div></div>
+      <div class="more-card"><span class="mi">🀄</span><div><h4>RAAS 猜点</h4><p>出门慢输一半，跑错路输全部。猜点模块帮你快速找到本局点位刷新路线。</p></div></div>
+      <div class="more-card"><span class="mi">🌐</span><div><h4>网络代理</h4><p>设置页可配置 HTTP / SOCKS5 代理，仅作用于地图工具的远程访问。</p></div></div>
+      <div class="more-card"><span class="mi">🌗</span><div><h4>深浅色主题</h4><p>主界面基于 Avalonia 与 SukiUI，支持浅色 / 深色主题一键切换。</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: preview -->
+<section class="section" id="preview">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Preview</span>
+      <h2>界面预览</h2>
+      <p>简洁直观的客户端界面，点击截图可查看大图</p>
+    </div>
+    <div class="preview-grid">
+      <div class="shot-card">
+        <div class="shot-frame" data-shot="auto" title="点击查看大图">
+          <img data-image="auto" alt="Squad小帮手 自动工具界面截图">
+          <div class="shot-fallback">自动工具界面截图加载失败</div>
+        </div>
+        <div class="shot-meta">
+          <div><h3>自动工具</h3><p>自动铲子 / 自动奔跑 / 极速抢车，快捷键一键开关</p></div>
+          <button class="shot-zoom" data-shot-btn="auto" data-primary-action>查看大图</button>
+        </div>
+      </div>
+      <div class="shot-card">
+        <div class="shot-frame" data-shot="map" title="点击查看大图">
+          <img data-image="map" alt="Squad小帮手 地图工具界面截图">
+          <div class="shot-fallback">地图工具界面截图加载失败</div>
+        </div>
+        <div class="shot-meta">
+          <div><h3>地图工具</h3><p>地图猜点 / 迫击炮坐标计算，自动识别当前地图与 Layer</p></div>
+          <button class="shot-zoom" data-shot-btn="map" data-primary-action>查看大图</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: download -->
+<section class="section" id="download">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Download</span>
+      <h2>下载安装</h2>
+      <p>免费开源，前往 GitHub 发布页获取最新版本</p>
+    </div>
+    <div class="download-box">
+      <div class="download-left">
+        <h3>准备好上战场了吗？</h3>
+        <p>前往 GitHub 发布页下载最新版安装包，解压即用。程序启动时会自动请求管理员权限（弹出 UAC 确认框属正常现象），以确保在加速器以管理员身份启动游戏时功能仍然有效；启动后可最小化到托盘，快捷键在后台同样有效。</p>
+        <a class="btn btn-primary" href="https://github.com/BFDZ/Squad-tools/releases" target="_blank" rel="noopener">⬇ 前往发布页下载</a>
+        <a class="btn btn-ghost" href="https://pan.quark.cn/s/27e1447df60f?pwd=9Wne" target="_blank" rel="noopener">📖 夸克网盘下载</a>
+      </div>
+      <ul class="req-list">
+        <li><span class="dot">●</span><div><b>系统要求</b>：Windows 10 / 11，需已安装 .NET 运行时。</div></li>
+        <li><span class="dot">●</span><div><b>地图工具依赖</b>：需 Microsoft Edge WebView2 Runtime（Windows 11 一般自带），缺少时程序会提示打开官方下载页。</div></li>
+        <li><span class="dot">●</span><div><b>管理员权限</b>：启动时弹出 UAC 确认框属正常现象，保证游戏以管理员运行时功能有效。</div></li>
+        <li><span class="dot">●</span><div><b>后台运行</b>：可最小化到托盘，快捷键在后台同样有效。</div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: footer -->
+<footer class="footer">
+  <div class="container footer-inner">
+    <span>Squad小帮手 v1.5.0 · 作者：lyl-103</span>
+    <span>
+      <a href="https://github.com/BFDZ/Squad-tools/releases" target="_blank" rel="noopener">GitHub发布页</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/BFDZ/Squad-tools/" target="_blank" rel="noopener">源码</a>
+    </span>
+  </div>
+</footer>
+
+<!-- SECTION: lightbox -->
+<div class="lightbox" id="lightbox" hidden>
+  <img id="lightbox-img" alt="界面截图大图">
+  <p class="lightbox-title" id="lightbox-title"></p>
+</div>
+
+<script>
+/* SECTION: images data */
+var SHOTS = [
+  {
+    id: "auto",
+    title: "自动工具 · 自动铲子 / 自动奔跑 / 极速抢车",
+    image: "https://workspace-cdn.uzone.com/bc9f191a9f9445cf9c683ca05b0ce8b8%2Fo%2F1787793916808-c.png?auth_key=1790385917-0-0-b5b23395fdb275457f261f61c3d39526"
+  },
+  {
+    id: "map",
+    title: "地图工具 · 地图猜点 / 迫击炮坐标计算",
+    image: "https://workspace-cdn.uzone.com/bc6750b56cb14004b0dc74da770d2e4b%2Fo%2F1787793916963-c.png?auth_key=1790385917-0-0-7cedbf44f4aee04b255e0e1dd6ebce81"
+  }
+];
+function findShot(id) {
+  for (var i = 0; i < SHOTS.length; i++) { if (SHOTS[i].id === id) return SHOTS[i]; }
+  return null;
+}
+
+/* SECTION: images bind */
+(function bindImages() {
+  var imgs = document.querySelectorAll("img[data-image]");
+  for (var i = 0; i < imgs.length; i++) {
+    (function (img) {
+      var shot = findShot(img.getAttribute("data-image"));
+      if (!shot) return;
+      img.addEventListener("error", function () {
+        var frame = img.closest(".shot-frame");
+        if (frame) frame.classList.add("img-error");
+      });
+      img.src = shot.image;
+    })(imgs[i]);
+  }
+})();
+
+/* SECTION: lightbox logic */
+(function bindLightbox() {
+  var box = document.getElementById("lightbox");
+  var boxImg = document.getElementById("lightbox-img");
+  var boxTitle = document.getElementById("lightbox-title");
+
+  function openShot(id) {
+    var shot = findShot(id);
+    if (!shot) return;
+    boxImg.alt = shot.title;
+    boxTitle.textContent = shot.title;
+    boxImg.src = shot.image;
+    box.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+  function closeShot() {
+    box.hidden = true;
+    document.body.style.overflow = "";
+  }
+
+  var frames = document.querySelectorAll("[data-shot]");
+  for (var i = 0; i < frames.length; i++) {
+    (function (el) {
+      el.addEventListener("click", function () { openShot(el.getAttribute("data-shot")); });
+    })(frames[i]);
+  }
+  var btns = document.querySelectorAll("[data-shot-btn]");
+  for (var j = 0; j < btns.length; j++) {
+    (function (el) {
+      el.addEventListener("click", function () { openShot(el.getAttribute("data-shot-btn")); });
+    })(btns[j]);
+  }
+  box.addEventListener("click", closeShot);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !box.hidden) closeShot();
+  });
+})();
+</script>
+</body>
+</html>
