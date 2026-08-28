@@ -9,8 +9,6 @@ internal sealed class MapGuessForm : Form
     private const string HomeUrl = "https://squadcalc.app/";
     private readonly WebView2 browser = new();
     private readonly Label statusLabel = new();
-    private readonly Panel loadingPanel = new();
-    private readonly Label loadingLabel = new();
     private readonly Icon applicationIcon;
     private readonly ProxySettings proxySettings;
     private readonly string mapHostDirectory;
@@ -18,8 +16,11 @@ internal sealed class MapGuessForm : Form
     private bool allowClose;
     private bool initialized;
     private string? pendingUrl;
+    private MapLayerSelection? appliedSelection;
     private ulong activeNavigationId;
     private bool waitingForPage;
+
+    internal event Action? WindowShown;
 
     internal MapGuessForm(Icon icon, ProxySettings proxySettings, string mapHostDirectory)
     {
@@ -45,18 +46,7 @@ internal sealed class MapGuessForm : Form
         browser.NavigationStarting += OnNavigationStarting;
         browser.NavigationCompleted += OnNavigationCompleted;
 
-        loadingLabel.AutoSize = true;
-        loadingLabel.Text = "加载中...";
-        loadingLabel.Font = new Font("Microsoft YaHei UI", 14F, FontStyle.Regular, GraphicsUnit.Point);
-        loadingLabel.ForeColor = Color.FromArgb(75, 80, 85);
-
-        loadingPanel.Dock = DockStyle.Fill;
-        loadingPanel.BackColor = Color.FromArgb(245, 245, 245);
-        loadingPanel.Controls.Add(loadingLabel);
-        loadingPanel.Resize += (_, _) => CenterLoadingLabel();
-
         Controls.Add(browser);
-        Controls.Add(loadingPanel);
         Controls.Add(statusLabel);
         Load += (_, _) => SetInitialBounds();
         Shown += (_, _) => InitializeBrowser();
@@ -98,16 +88,21 @@ internal sealed class MapGuessForm : Form
         }
 
         pendingUrl = selection.Url;
-        statusLabel.Text = $"当前地图：{selection.Map}    Layer：{selection.Layer}";
+        string team1 = MapLayerSelection.FactionName(selection.Team1Unit);
+        string team2 = MapLayerSelection.FactionName(selection.Team2Unit);
+        string factions = team1.Length == 0 && team2.Length == 0
+            ? string.Empty
+            : $"    阵营：{team1} vs {team2}";
+        statusLabel.Text = $"当前地图：{selection.Map}    Layer：{selection.Layer}{factions}";
+        if (appliedSelection == selection)
+        {
+            return;
+        }
+
+        appliedSelection = selection;
         if (initialized && browser.CoreWebView2 is not null)
         {
-            string localUrl = BuildLocalUrl(pendingUrl);
-            if (string.Equals(browser.Source?.ToString(), localUrl, StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            browser.CoreWebView2.Navigate(localUrl);
+            browser.CoreWebView2.Navigate(BuildLocalUrl(pendingUrl));
         }
     }
 
@@ -130,6 +125,7 @@ internal sealed class MapGuessForm : Form
         Show();
         WindowState = FormWindowState.Normal;
         Activate();
+        WindowShown?.Invoke();
     }
 
     internal void CloseWindow()
@@ -165,8 +161,6 @@ internal sealed class MapGuessForm : Form
         }
         catch (Exception exception)
         {
-            loadingLabel.Text = "网页加载失败";
-            CenterLoadingLabel();
             statusLabel.Text = $"地图工具网页初始化失败：{exception.Message}";
         }
     }
@@ -183,15 +177,6 @@ internal sealed class MapGuessForm : Form
     {
         activeNavigationId = e.NavigationId;
         waitingForPage = !string.Equals(e.Uri, "about:blank", StringComparison.OrdinalIgnoreCase);
-        if (!waitingForPage)
-        {
-            return;
-        }
-
-        loadingLabel.Text = "加载中...";
-        CenterLoadingLabel();
-        loadingPanel.Visible = true;
-        loadingPanel.BringToFront();
     }
 
     private void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
@@ -203,21 +188,10 @@ internal sealed class MapGuessForm : Form
 
         if (e.IsSuccess)
         {
-            loadingPanel.Visible = false;
-            loadingPanel.SendToBack();
             return;
         }
 
-        loadingLabel.Text = "网页加载失败";
-        CenterLoadingLabel();
         statusLabel.Text = $"地图工具网页加载失败：{e.WebErrorStatus}";
-    }
-
-    private void CenterLoadingLabel()
-    {
-        loadingLabel.Location = new Point(
-            Math.Max(0, (loadingPanel.ClientSize.Width - loadingLabel.Width) / 2),
-            Math.Max(0, (loadingPanel.ClientSize.Height - loadingLabel.Height) / 2));
     }
 
     private void OnFormClosing(object? sender, FormClosingEventArgs e)

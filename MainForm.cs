@@ -75,7 +75,7 @@ internal sealed class MainForm : Form
         Label footer = new()
         {
             Dock = DockStyle.Fill,
-             Text = "作者: lyl-103  版本号: 1.5.0",
+             Text = "作者: lyl-103  版本号: 1.5.1",
             TextAlign = ContentAlignment.MiddleRight,
             Padding = new Padding(0, 0, 12, 0),
             ForeColor = Color.FromArgb(105, 110, 115),
@@ -133,9 +133,14 @@ internal sealed class MainForm : Form
         squadLogReader.MapLayerChanged += selection =>
         {
             mapGuessForm.ApplyMapLayer(selection);
-            UpdateControl(mapGuessStatus, $"当前地图：{selection.Map}    Layer：{selection.Layer}");
+            UpdateControl(mapGuessStatus, DescribeSelection(selection));
         };
-        squadLogReader.StatusChanged += message => UpdateControl(mapGuessStatus, message);
+        squadLogReader.StatusChanged += message =>
+        {
+            UpdateControl(mapGuessStatus, message);
+            mapGuessForm.UpdateLogStatus(message);
+        };
+        mapGuessForm.WindowShown += () => squadLogReader.ScanNow();
         squadLogReader.ScanNow();
         PrepareClipboard();
 
@@ -401,6 +406,16 @@ internal sealed class MainForm : Form
         proxyStatus.Text = proxySettings.Enabled
             ? $"代理设置已保存：{proxySettings.Type} {proxySettings.Host}:{proxySettings.Port}，首次创建网页时生效。"
             : "网络代理已关闭，设置已保存。";
+    }
+
+    private static string DescribeSelection(MapLayerSelection selection)
+    {
+        string team1 = MapLayerSelection.FactionName(selection.Team1Unit);
+        string team2 = MapLayerSelection.FactionName(selection.Team2Unit);
+        string factions = team1.Length == 0 && team2.Length == 0
+            ? string.Empty
+            : $"    阵营：{team1} vs {team2}";
+        return $"当前地图：{selection.Map}    Layer：{selection.Layer}{factions}";
     }
 
     private static void ConfigureToggle(CheckBox toggle, string text, Point location)
