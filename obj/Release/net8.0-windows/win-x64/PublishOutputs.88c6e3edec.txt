@@ -1,4 +1,0 @@
-I:\opencode02\squadtools\publish\v1.4.2-single\Microsoft.Web.WebView2.Core.xml
-I:\opencode02\squadtools\publish\v1.4.2-single\Microsoft.Web.WebView2.WinForms.xml
-I:\opencode02\squadtools\publish\v1.4.2-single\Microsoft.Web.WebView2.Wpf.xml
-I:\opencode02\squadtools\publish\v1.4.2-single\Squad小帮手.exe
