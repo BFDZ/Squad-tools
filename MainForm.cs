@@ -75,7 +75,7 @@ internal sealed class MainForm : Form
         Label footer = new()
         {
             Dock = DockStyle.Fill,
-             Text = "作者: lyl-103  版本号: 1.5.1",
+              Text = $"作者: lyl-103  版本号: {AppVersion.Display}",
             TextAlign = ContentAlignment.MiddleRight,
             Padding = new Padding(0, 0, 12, 0),
             ForeColor = Color.FromArgb(105, 110, 115),

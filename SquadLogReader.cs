@@ -5,10 +5,6 @@ namespace SquadTools;
 
 internal sealed class SquadLogReader : IDisposable
 {
-    private static readonly Regex MapLayerPattern = new(
-        @"/Game/Maps/(?<mapName>[^/:\s]+)/Gameplay_Layers/(?<layerName>[^.\s]+)\.",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
     private static readonly Regex FactionSetupPattern = new(
         @"Success to load FactionSetup\s+(?<setup>\S+)\s+for team\s+(?<team>[12])",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
@@ -17,18 +13,21 @@ internal sealed class SquadLogReader : IDisposable
         @"Loaded Faction\s*:\s*(?<faction>[^\s]+)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    private readonly string logPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "SquadGame",
-        "Saved",
-        "Logs",
-        "SquadGame.log");
+    private readonly string logPath;
     private readonly FileSystemWatcher watcher;
     private readonly System.Threading.Timer refreshTimer;
     private readonly object syncRoot = new();
+    private readonly List<string> scanFactions = [];
     private MapLayerSelection? latestSelection;
-    private DateTime lastWriteUtc = DateTime.MinValue;
-    private long lastLength = -1;
+
+    // 增量扫描状态：只在扫描线程内读写。
+    private MapLayerSelection? scanSelection;
+    private string? scanTeam1Unit;
+    private string? scanTeam2Unit;
+    private long consumedBytes;
+    private byte[] pendingBytes = [];
+    private DateTime scanCreationUtc = DateTime.MinValue;
+    private int scanning;
     private bool disposed;
 
     internal event Action<MapLayerSelection>? MapLayerChanged;
@@ -39,8 +38,15 @@ internal sealed class SquadLogReader : IDisposable
         ReadLatestSelection(true);
     }
 
-    internal SquadLogReader()
+    internal SquadLogReader(string? logPathOverride = null)
     {
+        logPath = logPathOverride ?? Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SquadGame",
+            "Saved",
+            "Logs",
+            "SquadGame.log");
+
         string? directory = Path.GetDirectoryName(logPath);
         if (directory is null)
         {
@@ -73,103 +79,205 @@ internal sealed class SquadLogReader : IDisposable
             return;
         }
 
+        // 定时器与文件监听可能同时触发；上一次扫描未结束时直接跳过，避免状态错乱。
+        if (Interlocked.CompareExchange(ref scanning, 1, 0) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            ReadLatestSelectionCore(forceNotify);
+        }
+        finally
+        {
+            Volatile.Write(ref scanning, 0);
+        }
+    }
+
+    private void ReadLatestSelectionCore(bool forceNotify)
+    {
         FileInfo info = new(logPath);
         if (!info.Exists)
         {
+            ResetScanState();
             lock (syncRoot)
             {
                 latestSelection = null;
-                lastWriteUtc = DateTime.MinValue;
-                lastLength = -1;
             }
 
             ReportStatus("未找到 Squad 地图日志，等待游戏启动");
             return;
         }
 
-        if (info.LastWriteTimeUtc == lastWriteUtc && info.Length == lastLength)
+        long length;
+        DateTime creationUtc;
+        try
+        {
+            info.Refresh();
+            length = info.Length;
+            creationUtc = info.CreationTimeUtc;
+        }
+        catch (IOException)
+        {
+            ReportStatus("地图日志暂时被游戏占用，等待下次检查");
+            return;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            ReportStatus("没有权限读取 Squad 地图日志");
+            return;
+        }
+
+        if (creationUtc != scanCreationUtc)
+        {
+            // 日志被重建或轮换（游戏重启会新建文件），需要从头解析。
+            ResetScanState();
+            scanCreationUtc = creationUtc;
+        }
+
+        if (length == consumedBytes && pendingBytes.Length == 0)
         {
             NotifyCached(forceNotify);
             return;
         }
 
+        byte[] chunk;
         try
         {
-            MapLayerSelection? selection = null;
-            MapLayerSelection? current = null;
-            string? team1Unit = null;
-            string? team2Unit = null;
-            List<string> loadedFactions = [];
-            using FileStream stream = new(logPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            using StreamReader reader = new(stream, new UTF8Encoding(false, true));
-            string? line;
-            while ((line = reader.ReadLine()) is not null)
+            using FileStream stream = new(
+                logPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+
+            if (stream.Length < consumedBytes)
             {
-                MapLayerSelection? parsed = ParseMapLayer(line);
-                if (parsed is not null)
-                {
-                    if (current is null || current != parsed)
-                    {
-                        // 进入新地图：重置阵营，等待该图的阵营配置日志。
-                        current = parsed;
-                        team1Unit = null;
-                        team2Unit = null;
-                        loadedFactions.Clear();
-                    }
-
-                    selection = parsed;
-                    continue;
-                }
-
-                ParseFaction(line, ref team1Unit, ref team2Unit, loadedFactions);
+                // 文件被截断（清空日志或换新文件但创建时间未变），从头再来。
+                ResetScanState();
             }
 
-            // 未出现 FactionSetup 配置时，按阵营加载顺序（先 team1 后 team2）回退。
-            if (team1Unit is null && team2Unit is null && loadedFactions.Count > 0)
-            {
-                team1Unit = loadedFactions[0];
-                team2Unit = loadedFactions.Count > 1 ? loadedFactions[1] : null;
-            }
-
-            if (selection is not null && (team1Unit is not null || team2Unit is not null))
-            {
-                selection = selection with { Team1Unit = team1Unit, Team2Unit = team2Unit };
-            }
-
-            bool changed;
-            lock (syncRoot)
-            {
-                changed = selection is not null && (forceNotify || latestSelection != selection);
-                latestSelection = selection;
-                lastWriteUtc = info.LastWriteTimeUtc;
-                lastLength = info.Length;
-            }
-
-            if (selection is null)
-            {
-                ReportStatus("等待识别地图和 Layer");
-                return;
-            }
-
-            if (changed)
-            {
-                MapLayerChanged?.Invoke(selection);
-            }
-
-            ReportStatus(BuildStatus(selection));
-        }
-        catch (DecoderFallbackException)
-        {
-            ReportStatus("无法读取地图日志编码，等待下次检查");
+            stream.Seek(consumedBytes, SeekOrigin.Begin);
+            using MemoryStream buffer = new();
+            stream.CopyTo(buffer);
+            chunk = buffer.ToArray();
         }
         catch (IOException)
         {
             ReportStatus("地图日志暂时被游戏占用，等待下次检查");
+            return;
         }
         catch (UnauthorizedAccessException)
         {
             ReportStatus("没有权限读取 Squad 地图日志");
+            return;
         }
+
+        if (chunk.Length == 0 && pendingBytes.Length == 0)
+        {
+            NotifyCached(forceNotify);
+            return;
+        }
+
+        // 与上次残留的半行拼接，只解析已换行结束的完整行；末尾不完整的部分留到下次。
+        byte[] combined = new byte[pendingBytes.Length + chunk.Length];
+        pendingBytes.CopyTo(combined, 0);
+        chunk.CopyTo(combined, pendingBytes.Length);
+
+        long start = consumedBytes;
+        int lastNewline = Array.LastIndexOf(combined, (byte)'\n');
+        string completeText;
+        if (lastNewline < 0)
+        {
+            pendingBytes = combined;
+            consumedBytes = start + chunk.Length;
+            completeText = string.Empty;
+        }
+        else
+        {
+            completeText = Encoding.UTF8.GetString(combined, 0, lastNewline + 1);
+            pendingBytes = combined[(lastNewline + 1)..];
+            consumedBytes = start + lastNewline + 1;
+        }
+
+        foreach (string rawLine in completeText.Split('\n'))
+        {
+            string line = rawLine.TrimEnd('\r');
+            if (line.Length > 0)
+            {
+                ApplyLine(line);
+            }
+        }
+
+        PublishSelection(forceNotify);
+    }
+
+    /// <summary>把关卡/阵营行喂给增量扫描状态。</summary>
+    private void ApplyLine(string line)
+    {
+        MapLayerSelection? parsed = LayerNameParser.TryParse(line);
+        if (parsed is not null)
+        {
+            if (scanSelection is null || scanSelection != parsed)
+            {
+                // 进入新地图：重置阵营，等待该图层自己的阵营配置日志。
+                scanSelection = parsed;
+                scanTeam1Unit = null;
+                scanTeam2Unit = null;
+                scanFactions.Clear();
+            }
+
+            return;
+        }
+
+        ParseFaction(line, ref scanTeam1Unit, ref scanTeam2Unit, scanFactions);
+    }
+
+    private void PublishSelection(bool forceNotify)
+    {
+        string? team1Unit = scanTeam1Unit;
+        string? team2Unit = scanTeam2Unit;
+
+        // 未出现 FactionSetup 配置时，按阵营加载顺序（先 team1 后 team2）回退。
+        if (team1Unit is null && team2Unit is null && scanFactions.Count > 0)
+        {
+            team1Unit = scanFactions[0];
+            team2Unit = scanFactions.Count > 1 ? scanFactions[1] : null;
+        }
+
+        MapLayerSelection? selection = scanSelection;
+        if (selection is not null && (team1Unit is not null || team2Unit is not null))
+        {
+            selection = selection with { Team1Unit = team1Unit, Team2Unit = team2Unit };
+        }
+
+        bool changed;
+        lock (syncRoot)
+        {
+            changed = selection is not null && (forceNotify || latestSelection != selection);
+            latestSelection = selection;
+        }
+
+        if (selection is null)
+        {
+            ReportStatus("等待识别地图和 Layer");
+            return;
+        }
+
+        if (changed && !disposed)
+        {
+            MapLayerChanged?.Invoke(selection);
+        }
+
+        ReportStatus(BuildStatus(selection));
+    }
+
+    private void ResetScanState()
+    {
+        consumedBytes = 0;
+        pendingBytes = [];
+        scanSelection = null;
+        scanTeam1Unit = null;
+        scanTeam2Unit = null;
+        scanCreationUtc = DateTime.MinValue;
+        scanFactions.Clear();
     }
 
     private void NotifyCached(bool forceNotify)
@@ -191,33 +299,12 @@ internal sealed class SquadLogReader : IDisposable
             return;
         }
 
-        MapLayerChanged?.Invoke(cached);
+        if (!disposed)
+        {
+            MapLayerChanged?.Invoke(cached);
+        }
+
         ReportStatus(BuildStatus(cached));
-    }
-
-    private static MapLayerSelection? ParseMapLayer(string line)
-    {
-        if (!line.Contains("RegisterComponentWithWorld", StringComparison.Ordinal)
-            && !line.Contains("Bringing World", StringComparison.Ordinal))
-        {
-            return null;
-        }
-
-        Match match = MapLayerPattern.Match(line);
-        if (!match.Success)
-        {
-            return null;
-        }
-
-        string mapDirectory = match.Groups["mapName"].Value;
-        string fullLayer = match.Groups["layerName"].Value;
-        string layer = fullLayer.StartsWith(mapDirectory + "_", StringComparison.OrdinalIgnoreCase)
-            ? fullLayer[(mapDirectory.Length + 1)..]
-            : fullLayer;
-        string map = mapDirectory.Replace("_", string.Empty, StringComparison.Ordinal);
-        layer = layer.Replace("_", string.Empty, StringComparison.Ordinal);
-
-        return map.Length == 0 || layer.Length == 0 ? null : new MapLayerSelection(map, layer);
     }
 
     private static void ParseFaction(string line, ref string? team1Unit, ref string? team2Unit, List<string> loadedFactions)

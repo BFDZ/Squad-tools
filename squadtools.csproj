@@ -14,10 +14,10 @@
     <Description>Squad小帮手</Description>
     <Company>lyl-103</Company>
     <Authors>lyl-103</Authors>
-    <Version>1.5.1</Version>
-    <AssemblyVersion>1.5.1.0</AssemblyVersion>
-    <FileVersion>1.5.1.0</FileVersion>
-    <InformationalVersion>1.5.1</InformationalVersion>
+    <Version>1.5.4</Version>
+    <AssemblyVersion>1.5.4.0</AssemblyVersion>
+    <FileVersion>1.5.4.0</FileVersion>
+    <InformationalVersion>1.5.4</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
@@ -36,6 +36,12 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
     <PackageReference Include="SukiUI" Version="6.1.1" />
   </ItemGroup>
+  <Target Name="CopyLocalMapHostOnBuild" AfterTargets="Build">
+    <ItemGroup>
+      <LocalMapHostBuildFiles Include="I:\opencode02\Squad.ICU\MapHost\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(LocalMapHostBuildFiles)" DestinationFiles="@(LocalMapHostBuildFiles->'$(OutDir)MapHost\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="'$(OutDir)' != ''" />
+  </Target>
   <Target Name="CopyLocalMapHost" AfterTargets="Publish">
     <ItemGroup>
       <LocalMapHostFiles Include="I:\opencode02\Squad.ICU\MapHost\**\*" />

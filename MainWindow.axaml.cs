@@ -29,6 +29,11 @@ internal sealed partial class MainWindow : SukiWindow
     {
         Current = this;
         InitializeComponent();
+
+        // 版本号来自程序集元数据（csproj 的 Version），界面不再写死。
+        Title = AppVersion.WindowTitle;
+        VersionText.Text = AppVersion.ShortText;
+
         Width = 1000;
         Height = 800;
         Closed += (_, _) => LegacyRuntime.Stop();
@@ -164,6 +169,7 @@ internal sealed partial class MainWindow : SukiWindow
                     new TextBlock { Text = "Squad小帮手", FontSize = 26, FontWeight = FontWeight.SemiBold, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center },
                     new TextBlock { Text = "一个 Squad 游戏小工具：本地运行、无需登录，体积小、启动迅速。", FontSize = 14, Opacity = 0.72, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center },
                     new TextBlock { Text = "作者：lyl-103", HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center },
+                    new TextBlock { Text = $"版本 {AppVersion.Display}", Opacity = 0.7, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center },
                     LinkButton("主页：https://bfdz.github.io/Squad-tools/", "https://bfdz.github.io/Squad-tools/"),
                     LinkButton("发布页：https://github.com/BFDZ/Squad-tools/releases", "https://github.com/BFDZ/Squad-tools/releases"),
                     new Border { Height = 1, Width = 360, Background = new SolidColorBrush(Color.Parse("#50708090")), Margin = new Thickness(0, 6) },

@@ -2,7 +2,11 @@ namespace SquadTools;
 
 internal sealed record MapLayerSelection(string Map, string Layer, string? Team1Unit = null, string? Team2Unit = null)
 {
-    internal string Url
+    /// <summary>
+    /// 地图工具页面使用的查询串。页面本身由本地 MapHost 提供，
+    /// 这里只负责拼装 ?map=..&layer=..，不再依赖任何远程站点域名。
+    /// </summary>
+    internal string Query
     {
         get
         {
@@ -17,7 +21,7 @@ internal sealed record MapLayerSelection(string Map, string Layer, string? Team1
                 query += $"&team2={Uri.EscapeDataString(Team2Unit)}";
             }
 
-            return $"http://game.slyw.me/?{query}";
+            return $"?{query}";
         }
     }
 
